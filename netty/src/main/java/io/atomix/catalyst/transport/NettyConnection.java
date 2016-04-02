@@ -310,7 +310,7 @@ public class NettyConnection implements Connection {
     Iterator<Map.Entry<Long, ContextualFuture>> iterator = responseFutures.entrySet().iterator();
     while (iterator.hasNext()) {
       ContextualFuture future = iterator.next().getValue();
-      if (future.time + REQUEST_TIMEOUT < time) {
+      if ((future.timeout == null && future.time + REQUEST_TIMEOUT < time) || (future.timeout != null && future.time + future.timeout < time)) {
         iterator.remove();
         future.context.executor().execute(() -> future.completeExceptionally(new TimeoutException("request timed out")));
       } else {
@@ -320,10 +320,15 @@ public class NettyConnection implements Connection {
   }
 
   @Override
-  public <T, U> CompletableFuture<U> send(T request) {
+  public <T, U> CompletableFuture<U> send(T message) {
+    return send(message, null);
+  }
+
+  @Override
+  public <T, U> CompletableFuture<U> send(T request, Long timeout) {
     Assert.notNull(request, "request");
     ThreadContext context = ThreadContext.currentContextOrThrow();
-    ContextualFuture<U> future = new ContextualFuture<>(System.currentTimeMillis(), context);
+    ContextualFuture<U> future = new ContextualFuture<>(System.currentTimeMillis(), context, timeout);
 
     long requestId = ++this.requestId;
 
@@ -433,10 +438,18 @@ public class NettyConnection implements Connection {
   private static class ContextualFuture<T> extends CompletableFuture<T> {
     private final long time;
     private final ThreadContext context;
+    private final Long timeout;
 
     private ContextualFuture(long time, ThreadContext context) {
       this.time = time;
       this.context = context;
+      timeout = null;
+    }
+    
+    private ContextualFuture(long time, ThreadContext context, Long timeout) {
+      this.time = time;
+      this.context = context;
+      this.timeout = timeout;
     }
   }
 

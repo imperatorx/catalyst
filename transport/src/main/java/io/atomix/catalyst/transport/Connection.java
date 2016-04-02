@@ -62,6 +62,35 @@ public interface Connection {
    * @throws IllegalStateException if not called from a Catalyst thread
    */
   <T, U> CompletableFuture<U> send(T message);
+  
+  
+   /**
+   * Sends a message to the other side of the connection.
+   * <p>
+   * The message must be serializable via the configured {@link Serializer} instance. This means it
+   * must implement {@link java.io.Serializable}, {@link java.io.Externalizable}, or {@link CatalystSerializable}
+   * or provide a custom {@link TypeSerializer}.
+   * <p>
+   * Note that {@link Connection}s are bi-directional. That is, messages can be send either
+   * by the client or the server. All messages must have a reply, even if the reply is {@code null}. Once the reply
+   * has been received from the other side of the connection, the returned {@link java.util.concurrent.CompletableFuture}
+   * will be completed.
+   * <p>
+   * If {@code timeout} is null, the default timeout value will be used. 
+   * <p>
+   * {@link Connection} implementations must guarantee that all reply
+   * {@link java.util.concurrent.CompletableFuture futures} will be completed in the same
+   * {@link CatalystThread Catalyst thread}.
+   *
+   * @param message The message to send.
+   * @param timeout The timeout for the operation in milliseconds.
+   * @param <T> The message type.
+   * @param <U> The reply type.
+   * @return A completable future to be completed with the response.
+   * @throws NullPointerException if {@code message} is null
+   * @throws IllegalStateException if not called from a Catalyst thread
+   */
+  <T, U> CompletableFuture<U> send(T message, Long timeout);
 
   /**
    * Sets a message handler on the connection.

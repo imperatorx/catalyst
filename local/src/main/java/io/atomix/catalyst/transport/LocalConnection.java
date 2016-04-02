@@ -75,6 +75,14 @@ public class LocalConnection implements Connection {
     return future;
   }
 
+  @Override
+  public <T, U> CompletableFuture<U> send(T message, Long timeout) {
+    // Timeout is a NOOP in the local implementation now.
+    return send(message);
+  }
+  
+  
+
   /**
    * Sends a request.
    */
